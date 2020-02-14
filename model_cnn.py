@@ -65,6 +65,7 @@ plt.figure(figsize = (10,10))
 plt.plot(range(len(loss)),loss)
 plt.xlabel("Epochs")
 plt.ylabel("Training Loss")
+plt.title("Training Loss over 100 Epochs")
 plt.show()
 
 
@@ -73,6 +74,7 @@ plt.figure(figsize = (10,10))
 plt.plot(range(len(acc)),acc)
 plt.xlabel("Epochs")
 plt.ylabel("Training Accuracy")
+plt.title("Training Accuracy over 100 Epochs" )
 plt.show()
 
 
