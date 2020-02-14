@@ -12,12 +12,13 @@ CNN model source code
 
 import keras
 import numpy as np
-from keras.layers import Input, LSTM, Dense,Conv2D, MaxPooling2D, AveragePooling2D,Flatten
+from keras.layers import Input, LSTM, Dense,Conv2D, MaxPooling2D, AveragePooling2D,Flatten,Dropout
 from keras.models import Model
 import matplotlib.pyplot as plt
 
-   
-# Raster input, meant to receive 30x30 matrices that represent the neighorhoof of pixels of interest
+
+
+# Raster input, meant to receive 30x30 matrices that represent the neighorhood of pixels of interest
 # Note that we can name any layer by passing it a "name" argument.
 main_input = Input(shape=(30,30,2), dtype='float32', name='POI_HOOD')
 atmospheric_input = Input(shape=(4,), name = 'atmospheric_input')
@@ -29,10 +30,12 @@ atmospheric_input = Input(shape=(4,), name = 'atmospheric_input')
 x = AveragePooling2D(pool_size=(2, 2))(main_input)
 x = Conv2D(32, (3,3), input_shape=(15,15), padding='same', activation='relu')(x)
 x = MaxPooling2D(pool_size=(2, 2))(x)
+x = Dropout(0.2)(x)
 x = Conv2D(64, (3,3), input_shape=(7,7), padding='same', activation='relu')(x)
 x = MaxPooling2D(pool_size=(2, 2))(x)
-conv_out = Dense(128,activation = 'relu')(x)
-flat = Flatten()(conv_out)
+x = Dropout(0.2)(x)
+flat = Flatten()(x)
+conv_out = Dense(128,activation = 'relu')(flat)
 
 # concatenate auxillary input to the CNN layers : this makes a 136 dense layer
 merged = keras.layers.concatenate([flat, atmospheric_input])
@@ -44,11 +47,17 @@ model = Model(inputs = [main_input, atmospheric_input], outputs = [ final_out])
 model.compile(optimizer='rmsprop', loss='binary_crossentropy',loss_weights=[0.2])
 model.summary()
 
+
+# --------------------------------------------------------------------- data summary ------------------------------------------------------
+
 pixel_hood = np.round(np.abs(np.random.rand(20,30,30,2) * 100))
-
 atmospheric_data = np.random.randn(20,4)
-
 labels = [np.random.randint(0,2,size=20)]
-
-model.fit([pixel_hood, atmospheric_data], labels,
+hist  = model.fit([pixel_hood, atmospheric_data], labels,
           epochs=50, batch_size=1)
+history =  hist.history
+loss = history['loss']
+plt.scatter(range(len(loss)),loss)
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+
