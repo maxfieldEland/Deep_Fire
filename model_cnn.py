@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 # Raster input, meant to receive 30x30 matrices that represent the neighorhood of pixels of interest
 # Note that we can name any layer by passing it a "name" argument.
-main_input = Input(shape=(30,30,2), dtype='float32', name='POI_HOOD')
+main_input = Input(shape=(30,30,3,), dtype='float32', name='POI_HOOD')
 atmospheric_input = Input(shape=(4,), name = 'atmospheric_input')
 
 # A convolutional layer will transform the vector neighborhood into a feature layer 
@@ -44,20 +44,36 @@ merged = keras.layers.concatenate([flat, atmospheric_input])
 final_out = Dense(1, activation='sigmoid',name = 'final_out')(merged)
 
 model = Model(inputs = [main_input, atmospheric_input], outputs = [ final_out])
-model.compile(optimizer='rmsprop', loss='binary_crossentropy',loss_weights=[0.2])
+model.compile(optimizer='rmsprop', loss='binary_crossentropy',loss_weights=[0.2], metrics =['accuracy'])
 model.summary()
 
 
 # --------------------------------------------------------------------- data summary ------------------------------------------------------
 
-pixel_hood = np.round(np.abs(np.random.rand(20,30,30,2) * 100))
-atmospheric_data = np.random.randn(20,4)
-labels = [np.random.randint(0,2,size=20)]
-hist  = model.fit([pixel_hood, atmospheric_data], labels,
-          epochs=50, batch_size=1)
+pixel_hood = np.load('data/x_train.npy')
+
+atmospheric_data = np.tile(np.array([90,32.35,17,0.2]),(100,1))
+labels = np.load('data/y_train.npy')
+# transform labels to zero and one
+labels[labels == 2] = 0
+
+hist  = model.fit([pixel_hood, atmospheric_data], labels,epochs=100, batch_size=10)
+
 history =  hist.history
 loss = history['loss']
-plt.scatter(range(len(loss)),loss)
+plt.figure(figsize = (10,10))
+plt.plot(range(len(loss)),loss)
 plt.xlabel("Epochs")
-plt.ylabel("Loss")
+plt.ylabel("Training Loss")
+plt.show()
+
+
+acc = history['accuracy']
+plt.figure(figsize = (10,10))
+plt.plot(range(len(acc)),acc)
+plt.xlabel("Epochs")
+plt.ylabel("Training Accuracy")
+plt.show()
+
+
 
