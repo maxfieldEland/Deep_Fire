@@ -15,12 +15,13 @@ import numpy as np
 from keras.layers import Input, LSTM, Dense,Conv2D, MaxPooling2D, AveragePooling2D,Flatten,Dropout
 from keras.models import Model
 import matplotlib.pyplot as plt
-
-
+from keras import optimizers
+N_CHANNELS = 6
+WIN_SIZE = 30
 
 # Raster input, meant to receive 30x30 matrices that represent the neighorhood of pixels of interest
 # Note that we can name any layer by passing it a "name" argument.
-main_input = Input(shape=(30,30,3,), dtype='float32', name='POI_HOOD')
+main_input = Input(shape=(WIN_SIZE,WIN_SIZE,N_CHANNELS,), dtype='float32', name='POI_HOOD')
 atmospheric_input = Input(shape=(4,), name = 'atmospheric_input')
 
 # A convolutional layer will transform the vector neighborhood into a feature layer 
@@ -44,7 +45,9 @@ merged = keras.layers.concatenate([flat, atmospheric_input])
 final_out = Dense(1, activation='sigmoid',name = 'final_out')(merged)
 
 model = Model(inputs = [main_input, atmospheric_input], outputs = [ final_out])
-model.compile(optimizer='rmsprop', loss='binary_crossentropy',loss_weights=[0.2], metrics =['accuracy'])
+adam = optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+
+model.compile(optimizer=adam, loss='binary_crossentropy',loss_weights=[0.2], metrics =['accuracy'])
 model.summary()
 
 
@@ -52,30 +55,35 @@ model.summary()
 
 pixel_hood = np.load('data/x_train.npy')
 
-atmospheric_data = np.tile(np.array([90,32.35,17,0.2]),(100,1))
+atmospheric_data = np.tile(np.array([90,32.35,17,0.2]),(400,1))
 labels = np.load('data/y_train.npy')
 # transform labels to zero and one
 labels[labels == 2] = 0
 
-hist  = model.fit([pixel_hood, atmospheric_data], labels,epochs=100, batch_size=10)
+pixel_hood_val = np.load('data/x_val.npy')
+labels_val = np.load('data/y_val.npy')
+
+hist  = model.fit([pixel_hood, atmospheric_data],labels, validation_data = ([pixel_hood_val, atmospheric_data[:100,:]], labels_val),epochs=30, batch_size=32)
 
 history =  hist.history
 loss = history['loss']
-plt.figure(figsize = (10,10))
-plt.plot(range(len(loss)),loss)
+plt.figure(figsize = (5,5))
+plt.plot(range(len(loss)),loss,label = "Training Loss")
+plt.plot(range(len(history['val_loss'])),history['val_loss'], label = 'Validation Loss')
 plt.xlabel("Epochs")
 plt.ylabel("Training Loss")
-plt.title("Training Loss over 100 Epochs")
+plt.title("Loss over 100 Epochs")
+plt.legend()
 plt.show()
 
 
 acc = history['accuracy']
-plt.figure(figsize = (10,10))
-plt.plot(range(len(acc)),acc)
+plt.figure(figsize = (5,5))
+plt.plot(range(len(acc)),acc,label = 'Training Accuracy')
+plt.plot(range(len(history['val_accuracy'])),history['val_accuracy'],label = 'Validation Accuracy')
+
 plt.xlabel("Epochs")
 plt.ylabel("Training Accuracy")
-plt.title("Training Accuracy over 100 Epochs" )
+plt.title("Accuracy over 100 Epochs" )
+plt.legend()
 plt.show()
-
-
-

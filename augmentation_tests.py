@@ -29,7 +29,7 @@ def flipud_image(img):
     
 def data_augmentation(X,y):
     num_samples = X.shape[0]
-    big_X = np.zeros([num_samples*4,30,30,3])
+    big_X = np.zeros([num_samples*4,30,30,6])
     big_y = np.zeros(num_samples*4)
     i = 0
     for n, img in enumerate(X):
@@ -49,11 +49,18 @@ def data_augmentation(X,y):
     return big_X,big_y
     
    
+def augement_array_driver(X,y):
+    big_X, big_y = data_augmentation(X,y)
+    
+    return(big_X,big_y)
+
+
+
+
 if __name__ == '__main__':
     X, y = data_load()
     big_X, big_y = data_augmentation(X,y)
         
-print(big_y)  
         
             
         

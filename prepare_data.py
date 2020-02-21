@@ -11,6 +11,10 @@ The second indicating the lidar layer, the third indicating the NDVI index
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from augmentation_tests import augement_array_driver
+
+N_CHANNELS = 6
+WIN_SIZE = 30
 
 def sample_map(map_size):
     """
@@ -39,7 +43,7 @@ def generate_sample(x,y,channels_map):
              
              
     Output : 
-        sample : 30x30x3 sample 
+        sample : 30x30x6 sample 
            
     Description :
         
@@ -59,7 +63,7 @@ def generate_sample(x,y,channels_map):
     sample = channels_map[min_x:max_x, min_y:max_y,:]
     
     # check pad the sample in case the bounding box is cut off by the border of the map
-    if sample.shape != (30,30, 3):
+    if sample.shape != (WIN_SIZE,WIN_SIZE, N_CHANNELS):
         print("problem")
     return(sample)
     
@@ -68,7 +72,7 @@ def generate_sample(x,y,channels_map):
 def generate_samples(channels_map,future_state_map,num_samples = 100):
     # array with dimensions 30x30x3xnum_samples holding the lidar, state and NDVI sampled matrices 
         
-    neighborhoods = np.zeros([num_samples,30,30,3])
+    neighborhoods = np.zeros([num_samples,WIN_SIZE,WIN_SIZE,N_CHANNELS])
     labels = np.zeros(num_samples)
     for sample_idx in range(num_samples):
         # generate x,y pairs for pixel of interest (POI)
@@ -87,25 +91,57 @@ def generate_samples(channels_map,future_state_map,num_samples = 100):
         labels[sample_idx] = future_state_map[x,y]
     
     return(neighborhoods, labels)
+    
 def driver():
+
     
     # currently hard coded, this will need to change
     state_zero = np.load("landscape_king/burn_0.npy")
     state_one = np.load("landscape_king/burn_1.npy")
+    state_two = np.load("landscape_king/burn_2.npy")
     elevations = np.load("landscape_king/topography.npy")
+    red = np.load("landscape_king/red_layer.npy")
+    blue = np.load("landscape_king/blue_layer.npy")
+    green = np.load("landscape_king/green_layer.npy")
+    infred = np.load('landscape_king/infred_layer.npy')
+    
     # someone needs to collect
-    NDVI = np.random.rand(300,300)
     
-    channels_map = np.zeros([300,300,3])
-    channels_map[:,:,0] = elevations
-    channels_map[:,:,1] = state_zero
-    channels_map[:,:,2] = NDVI
+    channels_map_one = np.zeros([500,500,N_CHANNELS])
+    channels_map_one[:,:,0] = elevations
+    channels_map_one[:,:,1] = state_zero
+    channels_map_one[:,:,2] = red
+    channels_map_one[:,:,3] = blue
+    channels_map_one[:,:,4] = green
+    channels_map_one[:,:,5] = infred
+    
+    channels_map_one = np.zeros([500,500,N_CHANNELS])
+    channels_map_one[:,:,0] = elevations
+    channels_map_one[:,:,1] = state_one
+    channels_map_one[:,:,2] = red
+    channels_map_one[:,:,3] = blue
+    channels_map_one[:,:,4] = green
+    channels_map_one[:,:,5] = infred
+
+
+    # duplicate data with augmentation
     
     
-    X,labels = generate_samples(channels_map,state_one,num_samples = 100)
+
     
-    np.save("data/x_train",X)
-    np.save("data/y_train",labels)
+    X_train,labels_train = generate_samples(channels_map_one,state_one,num_samples = 100)
+
+    X_test,labels_test = generate_samples(channels_map_one,state_two,num_samples = 100)
+    
+    X_train_aug, labels_train_aug = augement_array_driver(X_train,labels_train)
+
+    
+    np.save("data/x_train",X_train_aug)
+    np.save("data/y_train",labels_train_aug)
+    
+    np.save("data/x_val",X_test)
+    np.save("data/y_val",labels_test)
+
     
     return(X,labels)
     
